@@ -229,9 +229,7 @@ fn main() {
 
     println!("Bin: {:?}\n", bin);
 
-    // Find range size
-    let range_size = *bin.iter().max().unwrap_or(&0);
-
     // Display graph
     set_histogram(bin_size, bin).expect("Could not display graph.");
 }
+
