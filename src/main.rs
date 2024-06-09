@@ -291,7 +291,7 @@ fn main() {
 
     println!("Sample Buffer: {:?}\n", sample_buffer);
 
-    set_sample_to_bin(sample_buffer);
+    graph_samples(sample_buffer);
 
 }
 
