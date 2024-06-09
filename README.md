@@ -1,3 +1,5 @@
+![Graph Example Output](Assets/histogram.png)
+
 # Gaussian Signal Generation 
 
 > This practicle implementation of random signal generation method 

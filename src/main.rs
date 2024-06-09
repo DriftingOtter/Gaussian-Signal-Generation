@@ -4,7 +4,7 @@ use regex::Regex;
 use plotters::prelude::*;
 
 
-const OUT_FILE_NAME: &str = "/home/daksh/Documents/random_noise_generator/src/histogram/histogram.png";
+const OUT_FILE_NAME: &str = "/home/daksh/Documents/random_noise_generator/src/histogram.png";
 
 
 fn get_generation_resolution() -> u32 {
@@ -69,6 +69,26 @@ fn get_sample_size() -> u32 {
     let sample_size: u32 = sample_size.trim().parse().unwrap();
 
     return sample_size;
+}
+
+fn get_binning_type() -> bool {
+    let mut binning_type = String::new();
+
+    println!("Would you like automatic binning? Or Manual? (A/M)");
+
+    io::stdin()
+        .read_line(&mut binning_type)
+        .expect("Could not read binning type.");
+
+    println!();
+
+    let binning_type = binning_type.trim().to_lowercase();
+
+    if binning_type == "m" {
+        return true;
+    } else {
+        return false;
+    }
 }
 
 fn get_sample(gen_count: u32, mean: f64, std_dev: f64) -> f64 {
@@ -152,7 +172,6 @@ fn get_bin_range(bin_position: u32) -> String {
     return bin_range;
 }
 
-
 fn set_bin_contents(mut bin: Vec<u32>, bin_size: u32, sample_buffer: Vec<f64>) -> Vec<u32> {
     for bin_pos in 1..=bin_size {
 
@@ -166,6 +185,27 @@ fn set_bin_contents(mut bin: Vec<u32>, bin_size: u32, sample_buffer: Vec<f64>) -
 
             if sample >= lower_bound && sample <= upper_bound {
                 bin[bin_pos as usize - 1] += 1;
+            }
+        }
+    }
+    return bin;
+}
+
+fn set_bin_contents_auto(mut bin: Vec<u32>, bin_size: u32, sample_buffer: Vec<f64>) -> Vec<u32> {
+
+    let max_range = sample_buffer.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
+    
+    // Ensure bin width is at least 1.0
+    let bin_width = ((max_range / bin_size as f64).ceil()).max(1.0);
+
+    for bin_pos in 0..bin_size {
+        let lower_bound = (bin_pos as f64 * bin_width).ceil();
+        let upper_bound = ((bin_pos + 1) as f64 * bin_width).ceil();
+
+        // Incrementing bin contents based on range
+        for &sample in &sample_buffer {
+            if sample >= lower_bound && sample < upper_bound {
+                bin[bin_pos as usize] += 1;
             }
         }
     }
@@ -205,6 +245,37 @@ fn set_histogram(domain_size: u32, data: Vec<u32>) -> Result<(), Box<dyn std::er
     Ok(())
 }
 
+fn graph_samples(sample_buffer: Vec<f64>) {
+    let binning_type = get_binning_type();
+
+    if binning_type {
+
+        // Create zero vector for storing samples
+        let bin_size: u32 = get_bin_size();
+        let bin: Vec<u32> = vec![0; bin_size as usize];
+
+        // Set bin contents
+        let bin = set_bin_contents(bin, bin_size, sample_buffer);
+
+        println!("Bin: {:?}\n", bin);
+
+        // Display graph
+        set_histogram(bin_size, bin).expect("Could not display graph.");
+
+    } else {
+
+        // Create zero vector
+        let bin_size: u32 = get_bin_size();
+        let bin: Vec<u32> = vec![0; bin_size as usize];
+
+        // Set bin contents
+        let bin = set_bin_contents_auto(bin, bin_size, sample_buffer);
+
+        // Display graph
+        set_histogram(bin_size, bin).expect("Could not display graph.");
+    }
+}
+
 fn main() {
     // Initialize buffer
     let sample_buffer: Vec<f64> = Vec::new();
@@ -219,17 +290,8 @@ fn main() {
     let sample_buffer = set_buffer_contents(sample_buffer, smpl_size, gen_res, mean, std_dev);
 
     println!("Sample Buffer: {:?}\n", sample_buffer);
-    
-    // Create zero vector
-    let bin_size: u32 = get_bin_size();
-    let bin: Vec<u32> = vec![0; bin_size as usize];
 
-    // Set bin contents
-    let bin = set_bin_contents(bin, bin_size, sample_buffer);
+    set_sample_to_bin(sample_buffer);
 
-    println!("Bin: {:?}\n", bin);
-
-    // Display graph
-    set_histogram(bin_size, bin).expect("Could not display graph.");
 }
 
