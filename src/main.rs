@@ -4,7 +4,7 @@ use regex::Regex;
 use plotters::prelude::*;
 
 
-const OUT_FILE_NAME: &str = "/home/daksh/Documents/random_noise_generator/src/histogram.png";
+const OUT_FILE_NAME: &str = "/home/daksh/Documents/Gaussian-Signal-Generation/src/histogram.png";
 
 
 fn get_generation_resolution() -> u32 {
@@ -84,36 +84,11 @@ fn get_binning_type() -> bool {
 
     let binning_type = binning_type.trim().to_lowercase();
 
-    if binning_type == "m" {
-        return true;
-    } else {
-        return false;
-    }
-}
-
-fn get_sample(gen_count: u32, mean: f64, std_dev: f64) -> f64 {
-    let mut smpl = 0.0;
-
-    // Generate noise
-    for _ in 0..gen_count - 1 {
-        smpl += rand::thread_rng().gen_range(0.0..1.0);
-    }
-
-    // Normalize smpl to mean
-    smpl = smpl - (gen_count as f64 / 2.0);
-
-    // Apply characteristics
-    smpl = (smpl * std_dev) + mean;
-
-    return smpl;
-}
-
-fn set_buffer_contents(mut sample_buffer: Vec<f64>, smpl_size: u32, gen_res: u32, mean: f64, std_dev: f64) -> Vec<f64> {
-    for _ in 0..smpl_size {
-        sample_buffer.push(get_sample(gen_res, mean, std_dev));
-    }
-
-    return sample_buffer;
+    match binning_type.as_str() {
+        "m"  => return true,
+        "a"  => return false,
+         _   => return false,
+    };
 }
 
 fn get_bin_size() -> u32 {
@@ -128,31 +103,8 @@ fn get_bin_size() -> u32 {
     println!();
 
     let bin_size: u32 = bin_size.trim().parse().unwrap();
-    
+
     return bin_size;
-}
-
-fn get_range_bounds(range: String) -> (f64, f64) {
-    let range_regex = r"^([0-9]*(?:\.[0-9]+)?)-([0-9]*(?:\.[0-9]+)?)$";
-    let pattern = Regex::new(range_regex).unwrap();
-
-    let mut lower_bound = String::new();
-    let mut upper_bound = String::new();
-
-    if let Some(captures) = pattern.captures(range.as_str()) {
-        lower_bound = captures.get(1).map_or("", |m| m.as_str()).to_string();
-        upper_bound = captures.get(2).map_or("", |m| m.as_str()).to_string();
-    } else {
-        println!("No match for input. Please enter range like 0.0-1.0.");
-        return (0.0, 0.0); // or handle the error as needed
-    }
-
-    let lower_bound: f64 = lower_bound.trim().parse().unwrap();
-    let upper_bound: f64 = upper_bound.trim().parse().unwrap();
-
-    println!("Lower Bound: {} | Upper Bound: {}\n", lower_bound, upper_bound);
-
-    return (lower_bound, upper_bound);
 }
 
 fn get_bin_range(bin_position: u32) -> String {
@@ -172,12 +124,61 @@ fn get_bin_range(bin_position: u32) -> String {
     return bin_range;
 }
 
+fn set_sample(gen_count: u32, mean: f64, std_dev: f64) -> f64 {
+    let mut smpl = 0.0;
+
+    // Generate noise
+    for _ in 0..gen_count - 1 {
+        smpl += rand::thread_rng().gen_range(0.0..1.0);
+    }
+
+    // Normalize smpl to mean
+    smpl = smpl - (gen_count as f64 / 2.0);
+
+    // Apply characteristics
+    smpl = (smpl * std_dev) + mean;
+
+    return smpl;
+}
+
+fn set_buffer_contents(mut sample_buffer: Vec<f64>, smpl_size: u32, gen_res: u32, mean: f64, std_dev: f64) -> Vec<f64> {
+    for _ in 0..smpl_size {
+        sample_buffer.push(set_sample(gen_res, mean, std_dev));
+    }
+    return sample_buffer;
+}
+
+
+fn set_range_bounds(range: String) -> (f64, f64) {
+    let range_regex = r"^([0-9]*(?:\.[0-9]+)?)-([0-9]*(?:\.[0-9]+)?)$";
+    let pattern = Regex::new(range_regex).unwrap();
+
+    let mut lower_bound = String::new();
+    let mut upper_bound = String::new();
+
+    if let Some(captures) = pattern.captures(range.as_str()) {
+        lower_bound = captures.get(1).map_or("", |m| m.as_str()).to_string();
+        upper_bound = captures.get(2).map_or("", |m| m.as_str()).to_string();
+    } else {
+        eprintln!("No match for input. Please enter range like 0.0-1.0.");
+        return (0.0, 0.0);
+    }
+
+    let lower_bound: f64 = lower_bound.trim().parse().unwrap();
+    let upper_bound: f64 = upper_bound.trim().parse().unwrap();
+
+    println!("Lower Bound: {} | Upper Bound: {}\n", lower_bound, upper_bound);
+
+    return (lower_bound, upper_bound);
+}
+
+
 fn set_bin_contents(mut bin: Vec<u32>, bin_size: u32, sample_buffer: Vec<f64>) -> Vec<u32> {
     for bin_pos in 1..=bin_size {
 
         // Get range from regex
         let bin_range = get_bin_range(bin_pos);
-        let (lower_bound, upper_bound) = get_range_bounds(bin_range);
+        let (lower_bound, upper_bound) = set_range_bounds(bin_range);
 
         // Incrementing bin contents based on range
         for pos in 0..sample_buffer.len() {
@@ -192,7 +193,6 @@ fn set_bin_contents(mut bin: Vec<u32>, bin_size: u32, sample_buffer: Vec<f64>) -
 }
 
 fn set_bin_contents_auto(mut bin: Vec<u32>, bin_size: u32, sample_buffer: Vec<f64>) -> Vec<u32> {
-
     let max_range = sample_buffer.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
     
     // Ensure bin width is at least 1.0
@@ -213,7 +213,7 @@ fn set_bin_contents_auto(mut bin: Vec<u32>, bin_size: u32, sample_buffer: Vec<f6
 }
 
 fn set_histogram(domain_size: u32, data: Vec<u32>) -> Result<(), Box<dyn std::error::Error>> {
-    let root = BitMapBackend::new(OUT_FILE_NAME, (640, 480)).into_drawing_area();
+    let root = BitMapBackend::new(OUT_FILE_NAME, (800, 800)).into_drawing_area();
     root.fill(&WHITE)?;
 
     let max_bin_value = *data.iter().max().unwrap_or(&0);
@@ -292,6 +292,5 @@ fn main() {
     println!("Sample Buffer: {:?}\n", sample_buffer);
 
     graph_samples(sample_buffer);
-
 }
 

@@ -302,6 +302,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "gaussian-signal-generation"
+version = "0.1.0"
+dependencies = [
+ "plotters",
+ "rand",
+ "regex",
+]
+
+[[package]]
 name = "getrandom"
 version = "0.2.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -579,15 +588,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ec0be4795e2f6a28069bec0b5ff3e2ac9bafc99e6a9a7dc3547996c5c816922c"
 dependencies = [
  "getrandom",
-]
-
-[[package]]
-name = "random_noise_generator"
-version = "0.1.0"
-dependencies = [
- "plotters",
- "rand",
- "regex",
 ]
 
 [[package]]
